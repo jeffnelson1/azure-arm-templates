@@ -1,0 +1,193 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "subnetName": {
+            "type": "string"
+        },
+        "virtualNetworkId": {
+            "type": "string"
+        },
+        "virtualMachineName": {
+            "type": "string"
+        },
+        "virtualMachineComputerName": {
+            "type": "string"
+        },
+        "osDiskType": {
+            "type": "string"
+        },
+        "virtualMachineSize": {
+            "type": "string"
+        },
+        "adminUsername": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "secureString"
+        },
+        "patchMode": {
+            "type": "string"
+        },
+        "enableHotpatching": {
+            "type": "bool"
+        },
+        "diagnosticsStorageAccountName": {
+            "type": "string"
+        },
+        "zone": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "vnetId": "[parameters('virtualNetworkId')]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('subnetName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat('nic-', parameters('virtualMachineName'))]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-10-01",
+            "location": "[parameters('location')]",
+            "dependsOn": [],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic"
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "Environment": "SharedServices",
+                "Function": "Domain Controller",
+                "Owner": "techops-platform",
+                "Tier Key": "Infrastructure",
+                "Build Tool": "ARM Template",
+                "Market": "NA"
+            }
+        },
+        {
+            "name": "[concat('datadisk_0-', parameters('virtualMachineName'))]",
+            "type": "Microsoft.Compute/disks",
+            "apiVersion": "2020-09-30",
+            "location": "[parameters('location')]",
+            "properties": {
+                "diskSizeGB": 100,
+                "creationData": {
+                    "createOption": "empty"
+                }
+            },
+            "sku": {
+                "name": "Premium_LRS"
+            },
+            "zones": [
+                "[parameters('zone')]"
+            ],
+            "tags": {
+                "Environment": "SharedServices",
+                "Function": "Domain Controller",
+                "Owner": "techops-platform",
+                "Tier Key": "Infrastructure",
+                "Build Tool": "ARM Template",
+                "Market": "NA"
+            }
+        },
+        {
+            "name": "[parameters('virtualMachineName')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2020-12-01",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/disks/', 'datadisk_0-', parameters('virtualMachineName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', 'nic-', parameters('virtualMachineName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('virtualMachineSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "name": "[concat('osdisk-', parameters('virtualMachineName'))]",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('osDiskType')]"
+                        }
+                    },
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-Datacenter",
+                        "version": "latest"
+                    },
+                    "dataDisks": [
+                        {
+                            "name": "[concat('datadisk_0-', parameters('virtualMachineName'))]",
+                            "lun": "0",
+                            "createOption": "Attach",
+                            "caching": "None",
+                            "diskSizeGB": "100",
+                            "managedDisk": {
+                                "id": "[resourceId('Microsoft.Compute/disks/', concat('datadisk_0-', parameters('virtualMachineName')))]",
+                                "storageAccountType": "Premium_LRS"
+                            },
+                            "writeAcceleratorEnabled": false
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('nic-', parameters('virtualMachineName')))]"
+                        }
+                    ]
+                },
+                "securityProfile": {},
+                "osProfile": {
+                    "computerName": "[parameters('virtualMachineComputerName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "windowsConfiguration": {
+                        "enableAutomaticUpdates": true,
+                        "provisionVmAgent": true,
+                        "patchSettings": {
+                            "enableHotpatching": "[parameters('enableHotpatching')]",
+                            "patchMode": "[parameters('patchMode')]"
+                        }
+                    }
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('https://', parameters('diagnosticsStorageAccountName'), '.blob.core.windows.net/')]"
+                    }
+                }
+            },
+            "zones": [
+                "[parameters('zone')]"
+            ],
+            "tags": {
+                "Environment": "SharedServices",
+                "Function": "Domain Controller",
+                "Owner": "techops-platform",
+                "Tier Key": "Infrastructure",
+                "Build Tool": "ARM Template",
+                "Market": "NA"
+            }
+        }
+    ],
+    "outputs": {
+        "adminUsername": {
+            "type": "string",
+            "value": "[parameters('adminUsername')]"
+        }
+    }
+}

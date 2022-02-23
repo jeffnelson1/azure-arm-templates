@@ -1,0 +1,179 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "0.0.0.0",
+  "parameters": {
+    "Application": {
+      "defaultValue": "",
+      "type": "string",
+      "metadata": {
+        "description": "Name of application"
+      }
+    },
+    "Owner": {
+      "type": "string",
+      "metadata": {
+        "description": "Team owner"
+      }
+    },
+    "Environment": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Environment Name"
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies the name of the key vault. No environment will be appended to the name you provide."
+      }
+    },
+    "virtualNetworkId": {
+      "type": "string",
+      "allowedValues": [
+        ""
+      ],
+      "metadata": {
+        "description": "These are location dependent. Generally, vaults should be connected to an ASE VNet. "
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "East US 2",
+      "allowedValues": [
+        "East US 2",
+        "Central US"
+      ],
+      "metadata": {
+        "description": "Location key vault."
+      }
+    },
+    "objectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies the object ID of a user, service principal or security group in the Azure Active Directory tenant for the vault. This should be the id or the group or user who will administer the keys, secrets and certificates in the vault."
+      }
+    }
+  },
+  "variables": {
+    "diagnosticsSettingName": "KeyVault-Diagnostics",
+    "workspaceId": ""
+
+  },
+  "resources": [
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "name": "[parameters('keyVaultName')]",
+      "apiVersion": "2019-09-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "enabledForDeployment": false,
+        "enabledForTemplateDeployment": true,
+        "enabledForDiskEncryption": false,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": 90,
+        "enablePurgeProtection": true,
+        "tenantId": "[subscription().tenantId]",
+        "accessPolicies": [
+          {
+            "objectId": "[parameters('objectId')]",
+            "tenantId": "[subscription().tenantId]",
+            "permissions": {
+              "keys": [
+                "all"
+              ],
+              "secrets": [
+                "all"
+              ],
+              "storage": [
+                "all"
+              ],
+              "certificates": [
+                "all"
+              ]
+            }
+          },
+          {
+            "objectId": "",
+            "tenantId": "[subscription().tenantId]",
+            "permissions": {
+              "keys": [
+                "all"
+              ],
+              "secrets": [
+                "all"
+              ],
+              "storage": [
+                "all"
+              ],
+              "certificates": [
+                "all"
+              ]
+            }
+          }
+        ],
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Deny",
+          "ipRules": [
+            {
+              "value": "0.0.0.0/22"
+            },
+            {
+              "value": "0.0.0.0/22"
+            }
+          ],
+          "virtualNetworkRules": [
+            {
+              "id": "[parameters('virtualNetworkId')]"
+            }
+          ]
+        },
+        "sku": {
+          "name": "Standard",
+          "family": "A"
+        }
+      },
+      "tags": {
+        "Application ID": "[parameters('Application')]",
+        "Cost Center": "[parameters('Owner')]",
+        "Environment": "[parameters('Environment')]"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/providers/diagnosticSettings",
+      "apiVersion": "2017-05-01-preview",
+      "name": "[concat(parameters('keyVaultName'), '/Microsoft.Insights/', variables('diagnosticsSettingName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+      ],
+      "properties": {
+        "workspaceId": "[variables('workspaceId')]",
+        "logs": [
+          {
+            "category": "AuditEvent",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults/providers/locks",
+      "apiVersion": "2016-09-01",
+      "name": "[concat(parameters('keyVaultName'), '/Microsoft.Authorization/deletelock')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+      ],
+      "properties": {
+        "level": "CanNotDelete",
+        "notes": "KeyVault delete lock"
+      }
+    }
+  ]
+}

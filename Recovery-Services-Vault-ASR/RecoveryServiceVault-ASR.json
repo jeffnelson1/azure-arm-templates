@@ -1,0 +1,274 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "rsv_Name": {
+            "type": "String",
+            "metadata": {
+                "description": "Enter the name of the Recovery Services vault.  "
+            }
+        },
+        "Application": {
+            "type": "String",
+            "metadata": {
+                "description": "Enter the Application Name"
+            }
+        },
+        "Owner": {
+            "type": "String",
+            "metadata": {
+                "description": "Enter the Owner tag value"
+            }
+        },
+        "location": {
+            "type": "string",
+            "allowedValues": [
+                "centralus",
+                "eastus2"
+
+            ],
+            "defaultValue": "eastus2",
+            "metadata": {
+                "description": "Azure Region"
+            }
+        },
+        "vNetResourceGroupName": {
+            "type": "String",
+            "metadata": {
+                "description": "The resource group name of the vNet that will be linked to the private endpoint."
+            }
+        },
+        "vNetName": {
+            "type": "String",
+            "metadata": {
+                "description": "The vNet name that will be linked to the private endpoint."
+            }
+        },
+        "subnetName": {
+            "type": "String",
+            "metadata": {
+                "description": "The name of the subnet where the private endpoint will be linked"
+            }
+        },
+        "roleNameGuid-PE": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "A new GUID used to identify the private endpoint resource group role assignment"
+            }
+        },
+        "roleNameGuid-VNET": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "A new GUID used to identify the vNET resource group role assignment"
+            }
+        }
+    },
+    "variables": {
+        "privateEndpointName": "[concat(parameters('rsv_Name'), '-privateE')]",
+        "vNetAssignmentName": "vNet-Rbac-Assignment",
+        "subnetRef": "[resourceId(parameters('vNetResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets/', parameters('vNetName'), parameters('subnetName'))]"
+    },
+
+    "resources": [
+        {
+            "type": "Microsoft.RecoveryServices/vaults",
+            "apiVersion": "2018-01-10",
+            "name": "[parameters('rsv_Name')]",
+            "location": "[parameters('location')]",
+            "tags": {
+                "Application": "[parameters('Application')]",
+                "Owner": "[parameters('Owner')]"
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "sku": {
+                "name": "RS0",
+                "tier": "Standard"
+            },
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.RecoveryServices/vaults/replicationPolicies",
+            "apiVersion": "2018-01-10",
+            "name": "[concat(parameters('rsv_Name'), '/RPO-01')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.RecoveryServices/vaults', parameters('rsv_Name'))]"
+            ],
+            "properties": {
+                "providerSpecificInput": {
+                    "instanceType": "A2A",
+                    "crashConsistentFrequencyInMinutes": 5,
+                    "recoveryPointThresholdInMinutes": 15,
+                    "recoveryPointHistory": 1440,
+                    "appConsistentFrequencyInMinutes": 60,
+                    "multiVmSyncStatus": "Enable"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.RecoveryServices/vaults/replicationPolicies",
+            "apiVersion": "2018-01-10",
+            "name": "[concat(parameters('rsv_Name'), '/RPO-02')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.RecoveryServices/vaults', parameters('rsv_Name'))]"
+            ],
+            "properties": {
+                "providerSpecificInput": {
+                    "instanceType": "A2A",
+                    "crashConsistentFrequencyInMinutes": 5,
+                    "recoveryPointThresholdInMinutes": 15,
+                    "recoveryPointHistory": 1440,
+                    "appConsistentFrequencyInMinutes": 120,
+                    "multiVmSyncStatus": "Enable"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.RecoveryServices/vaults/replicationPolicies",
+            "apiVersion": "2018-01-10",
+            "name": "[concat(parameters('rsv_Name'), '/RPO-04')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.RecoveryServices/vaults', parameters('rsv_Name'))]"
+            ],
+            "properties": {
+                "providerSpecificInput": {
+                    "instanceType": "A2A",
+                    "crashConsistentFrequencyInMinutes": 5,
+                    "recoveryPointThresholdInMinutes": 15,
+                    "recoveryPointHistory": 1440,
+                    "appConsistentFrequencyInMinutes": 240,
+                    "multiVmSyncStatus": "Enable"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.RecoveryServices/vaults/replicationPolicies",
+            "apiVersion": "2018-01-10",
+            "name": "[concat(parameters('rsv_Name'), '/RPO-12')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.RecoveryServices/vaults', parameters('rsv_Name'))]"
+            ],
+            "properties": {
+                "providerSpecificInput": {
+                    "instanceType": "A2A",
+                    "crashConsistentFrequencyInMinutes": 5,
+                    "recoveryPointThresholdInMinutes": 15,
+                    "recoveryPointHistory": 1440,
+                    "appConsistentFrequencyInMinutes": 720,
+                    "multiVmSyncStatus": "Enable"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2020-04-01-preview",
+            "name": "[parameters('roleNameGuid-PE')]",
+            "properties": {
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                "principalId": "[reference(concat('Microsoft.RecoveryServices/vaults/', parameters('rsv_Name')), '2018-01-10', 'Full').identity.principalId]",
+                "scope": "[concat(subscription().Id, '/resourceGroups/', resourceGroup().name)]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.RecoveryServices/vaults', parameters('rsv_Name'))]",
+                "[concat('Microsoft.RecoveryServices/vaults/', parameters('rsv_Name'), '/replicationPolicies/', 'RPO-12')]"
+            ]
+        },
+        {
+            "apiVersion": "2017-05-10",
+            "name": "[variables('vNetAssignmentName')]",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "[resourceId('Microsoft.RecoveryServices/vaults', parameters('rsv_Name'))]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', parameters('roleNameGuid-PE'))]",
+                "[concat('Microsoft.RecoveryServices/vaults/', parameters('rsv_Name'), '/replicationPolicies/', 'RPO-12')]"
+            ],
+            "resourceGroup": "[parameters('vNetResourceGroupName')]",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [
+                        {
+                            "type": "Microsoft.Authorization/roleAssignments",
+                            "apiVersion": "2020-04-01-preview",
+                            "name": "[parameters('roleNameGuid-VNET')]",
+                            "properties": {
+                                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+                                "principalId": "[reference(concat('Microsoft.RecoveryServices/vaults/', parameters('rsv_Name')), '2018-01-10', 'Full').identity.principalId]",
+                                "scope": "[concat(subscription().Id, '/resourceGroups/', parameters('vNetResourceGroupName'))]"
+                            }
+                        }
+                    ]
+                },
+                "parameters": {}
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('privateEndpointName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.RecoveryServices/vaults', parameters('rsv_Name'))]",
+                "[resourceId('Microsoft.Authorization/roleAssignments', parameters('roleNameGuid-PE'))]",
+                "[concat(subscription().Id, '/resourceGroups/', parameters('vNetResourceGroupName'), '/providers/Microsoft.Resources/deployments/vNet-Rbac-Assignment')]"
+            ],
+            "location": "[parameters('location')]",
+            "tags": {
+                "Application": "[parameters('Application')]",
+                "Owner": "[parameters('Owner')]"
+            },
+            "properties": {
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[variables('privateEndpointName')]",
+                        "properties": {
+                            "privateLinkServiceId": "[concat(subscription().Id, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.RecoveryServices/vaults/', parameters('rsv_Name'))]",
+                            "groupIds": [
+                                "AzureSiteRecovery"
+                            ],
+                            "privateLinkServiceConnectionState": {
+                                "status": "Approved",
+                                "description": "None",
+                                "actionsRequired": "None"
+                            }
+                        }
+                    }
+                ],
+                "manualPrivateLinkServiceConnections": [],
+                "subnet": {
+                    "id": "[variables('subnetRef')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.RecoveryServices/vaults/providers/locks",
+            "apiVersion": "2016-09-01",
+            "name": "[concat(parameters('rsv_Name'), '/Microsoft.Authorization/deletelock')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.RecoveryServices/vaults', parameters('rsv_Name'))]"
+            ],
+            "properties": {
+                "level": "CanNotDelete",
+                "notes": "RSV delete lock"
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/providers/locks",
+            "apiVersion": "2016-09-01",
+            "name": "[concat(variables('privateEndpointName'), '/Microsoft.Authorization/deletelock')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', variables('privateEndpointName'))]"
+            ],
+            "properties": {
+                "level": "CanNotDelete",
+                "notes": "Private Endpoint delete lock"
+            }
+        }
+    ]
+}

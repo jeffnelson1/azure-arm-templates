@@ -1,0 +1,33 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "rsv_Name": {
+            "value": ""
+        },
+        "Application": {
+            "value": ""
+        },
+        "Owner": {
+            "value": ""
+        },
+        "location": {
+            "value": "eastus2"
+        },
+        "vNetResourceGroupName": {
+            "value": ""
+        },
+        "vNetName": {
+            "value": ""
+        },
+        "subnetName": {
+            "value": ""
+        },
+        "roleNameGuid-PE": {
+            "value": ""
+        },
+        "roleNameGuid-VNET": {
+            "value": ""
+        }
+    }
+}
