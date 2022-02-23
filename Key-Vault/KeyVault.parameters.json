@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Application": {
+            "value": ""
+        },
+        "Owner": {
+            "value": ""
+        },
+        "Environment": {
+            "value": ""
+        },
+        "keyVaultName": {
+            "value": ""
+        },
+        "virtualNetworkId": {
+            "value": ""
+        },
+        "location": {
+            "value": "East US 2"
+        },
+        "objectId": {
+            "value": ""
+        }
+    }
+}
