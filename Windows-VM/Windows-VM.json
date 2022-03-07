@@ -67,12 +67,8 @@
                 ]
             },
             "tags": {
-                "Environment": "SharedServices",
-                "Function": "Domain Controller",
-                "Owner": "techops-platform",
-                "Tier Key": "Infrastructure",
-                "Build Tool": "ARM Template",
-                "Market": "NA"
+                "Environment": "devtest",
+                "Owner": "cloud_team"
             }
         },
         {
@@ -93,12 +89,8 @@
                 "[parameters('zone')]"
             ],
             "tags": {
-                "Environment": "SharedServices",
-                "Function": "Domain Controller",
-                "Owner": "techops-platform",
-                "Tier Key": "Infrastructure",
-                "Build Tool": "ARM Template",
-                "Market": "NA"
+                "Environment": "devtest",
+                "Owner": "cloud_team"
             }
         },
         {
@@ -175,12 +167,8 @@
                 "[parameters('zone')]"
             ],
             "tags": {
-                "Environment": "SharedServices",
-                "Function": "Domain Controller",
-                "Owner": "techops-platform",
-                "Tier Key": "Infrastructure",
-                "Build Tool": "ARM Template",
-                "Market": "NA"
+                "Environment": "devtest",
+                "Owner": "cloud_team"
             }
         }
     ],
